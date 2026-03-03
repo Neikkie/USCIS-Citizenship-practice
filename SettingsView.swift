@@ -11,11 +11,50 @@ struct SettingsView: View {
     @ObservedObject var scoreManager: ScoreManager
     @ObservedObject var appearanceManager: AppearanceManager
     @State private var showingResetAlert = false
-    @State private var showingScoreHistory = false
+    @State private var selectedWebLink: WebLink?
     @Environment(\.dismiss) private var dismiss
     
     private let usRed = Color(red: 178/255, green: 34/255, blue: 52/255)
     private let usBlue = Color(red: 60/255, green: 59/255, blue: 110/255)
+    
+    enum WebLink: Identifiable {
+        case about, home, privacyPolicy, termsAndConditions, usage
+        
+        var id: String {
+            switch self {
+            case .about: return "about"
+            case .home: return "home"
+            case .privacyPolicy: return "privacy"
+            case .termsAndConditions: return "terms"
+            case .usage: return "usage"
+            }
+        }
+        
+        var title: String {
+            switch self {
+            case .about: return "About"
+            case .home: return "Home"
+            case .privacyPolicy: return "Privacy Policy"
+            case .termsAndConditions: return "Terms and Conditions"
+            case .usage: return "Usage"
+            }
+        }
+        
+        var url: URL {
+            switch self {
+            case .about:
+                return URL(string: "https://dinerdapps.wixsite.com/website-4/about")!
+            case .home:
+                return URL(string: "https://dinerdapps.wixsite.com/website-4")!
+            case .privacyPolicy:
+                return URL(string: "https://dinerdapps.wixsite.com/website-4/privacy-policy")!
+            case .termsAndConditions:
+                return URL(string: "https://dinerdapps.wixsite.com/website-4/blank-page")!
+            case .usage:
+                return URL(string: "https://dinerdapps.wixsite.com/website-4/about-1")!
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -51,53 +90,19 @@ struct SettingsView: View {
                         .font(.caption)
                 }
                 
-                // Statistics Section
+                // App Information Section
                 Section {
                     HStack {
-                        Label("Total Tests Taken", systemImage: "checkmark.circle.fill")
+                        Label("Version", systemImage: "info.circle.fill")
                             .foregroundColor(usBlue)
                         Spacer()
-                        Text("\(scoreManager.getTotalTestsTaken())")
+                        Text("1.0.0")
                             .foregroundColor(.secondary)
-                            .fontWeight(.semibold)
                     }
                     
-                    if let avgScore = scoreManager.getAverageScore() {
-                        HStack {
-                            Label("Average Score", systemImage: "chart.bar.fill")
-                                .foregroundColor(.orange)
-                            Spacer()
-                            Text("\(avgScore)%")
-                                .foregroundColor(avgScore >= 60 ? .green : .orange)
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    
-                    Button(action: {
-                        showingScoreHistory = true
-                    }) {
-                        HStack {
-                            Label("View Score History", systemImage: "clock.fill")
-                                .foregroundColor(.purple)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } header: {
-                    Text("Statistics")
-                } footer: {
-                    if let avgScore = scoreManager.getAverageScore() {
-                        Text("You need 60% or higher to pass the USCIS test.")
-                            .font(.caption)
-                    }
-                }
-                
-                // About Section
-                Section {
                     HStack {
                         Label("Questions Version", systemImage: "doc.text.fill")
+                            .foregroundColor(.green)
                         Spacer()
                         Text("2026")
                             .foregroundColor(.secondary)
@@ -105,6 +110,7 @@ struct SettingsView: View {
                     
                     HStack {
                         Label("Total Questions", systemImage: "list.number")
+                            .foregroundColor(.orange)
                         Spacer()
                         Text("100")
                             .foregroundColor(.secondary)
@@ -112,15 +118,91 @@ struct SettingsView: View {
                     
                     HStack {
                         Label("Passing Score", systemImage: "star.fill")
+                            .foregroundColor(.yellow)
                         Spacer()
                         Text("6/10")
                             .foregroundColor(.secondary)
                     }
                 } header: {
-                    Text("About")
+                    Text("App Information")
                 } footer: {
                     Text("This app uses the official 2026 USCIS citizenship test questions.")
                         .font(.caption)
+                }
+                
+                // Links Section
+                Section {
+                    Button(action: {
+                        selectedWebLink = .home
+                    }) {
+                        HStack {
+                            Label("Home", systemImage: "house.fill")
+                                .foregroundColor(usBlue)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Button(action: {
+                        selectedWebLink = .about
+                    }) {
+                        HStack {
+                            Label("About Us", systemImage: "info.circle.fill")
+                                .foregroundColor(.purple)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Button(action: {
+                        selectedWebLink = .usage
+                    }) {
+                        HStack {
+                            Label("Usage Guide", systemImage: "book.fill")
+                                .foregroundColor(.orange)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Resources")
+                }
+                
+                // Legal Section
+                Section {
+                    Button(action: {
+                        selectedWebLink = .privacyPolicy
+                    }) {
+                        HStack {
+                            Label("Privacy Policy", systemImage: "lock.shield.fill")
+                                .foregroundColor(.green)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Button(action: {
+                        selectedWebLink = .termsAndConditions
+                    }) {
+                        HStack {
+                            Label("Terms and Conditions", systemImage: "doc.text.fill")
+                                .foregroundColor(usRed)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Legal")
                 }
                 
                 // Data Management Section
@@ -173,9 +255,64 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete all your test scores and history. This action cannot be undone.")
             }
-            .sheet(isPresented: $showingScoreHistory) {
-                ScoreHistoryView(scoreManager: scoreManager)
+            .sheet(item: $selectedWebLink) { link in
+                WebViewSheet(url: link.url, title: link.title)
             }
+        }
+    }
+}
+
+// Web View Sheet for in-app browsing
+struct WebViewSheet: View {
+    let url: URL
+    let title: String
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            WebView(url: url)
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                        .fontWeight(.semibold)
+                    }
+                }
+        }
+    }
+}
+
+// WebView wrapper using WKWebView
+import WebKit
+
+struct WebView: UIViewRepresentable {
+    let url: URL
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.navigationDelegate = context.coordinator
+        return webView
+    }
+    
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        let request = URLRequest(url: url)
+        webView.load(request)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, WKNavigationDelegate {
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            // Show loading indicator if needed
+        }
+        
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // Hide loading indicator if needed
         }
     }
 }
