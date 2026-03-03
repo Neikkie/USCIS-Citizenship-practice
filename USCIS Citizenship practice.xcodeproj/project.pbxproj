@@ -6,8 +6,17 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6DF191F52F57606C00B9A106 /* ScoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF191F42F57606C00B9A106 /* ScoreManager.swift */; };
+		6DF191F72F57614C00B9A106 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF191F62F57614C00B9A106 /* SettingsView.swift */; };
+		6DF191F92F57623300B9A106 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF191F82F57623300B9A106 /* AppearanceManager.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		6D56E1D62F4B70470085DCA2 /* USCIS Citizenship practice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "USCIS Citizenship practice.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6DF191F42F57606C00B9A106 /* ScoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreManager.swift; sourceTree = "<group>"; };
+		6DF191F62F57614C00B9A106 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		6DF191F82F57623300B9A106 /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +43,9 @@
 			children = (
 				6D56E1D82F4B70470085DCA2 /* USCIS Citizenship practice */,
 				6D56E1D72F4B70470085DCA2 /* Products */,
+				6DF191F42F57606C00B9A106 /* ScoreManager.swift */,
+				6DF191F62F57614C00B9A106 /* SettingsView.swift */,
+				6DF191F82F57623300B9A106 /* AppearanceManager.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,6 +131,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6DF191F52F57606C00B9A106 /* ScoreManager.swift in Sources */,
+				6DF191F72F57614C00B9A106 /* SettingsView.swift in Sources */,
+				6DF191F92F57623300B9A106 /* AppearanceManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
