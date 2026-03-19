@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import StoreKit
 
 struct SettingsView: View {
     @ObservedObject var scoreManager: ScoreManager
     @ObservedObject var appearanceManager: AppearanceManager
+    @ObservedObject var stateManager: StateManager
     @State private var showingResetAlert = false
+    @State private var showingStateSelector = false
+    @State private var showingTipSheet = false
     @State private var selectedWebLink: WebLink?
     @Environment(\.dismiss) private var dismiss
     
@@ -87,6 +91,37 @@ struct SettingsView: View {
                     Text("Appearance")
                 } footer: {
                     Text("Choose how the app looks. Automatic follows your system settings.")
+                        .font(.caption)
+                }
+                
+                // State Selection Section
+                Section {
+                    Button(action: {
+                        showingStateSelector = true
+                    }) {
+                        HStack {
+                            Label("Your State", systemImage: "map.fill")
+                                .foregroundColor(.green)
+                            
+                            Spacer()
+                            
+                            if let state = stateManager.selectedState {
+                                Text(state.name)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("Not Selected")
+                                    .foregroundColor(.orange)
+                            }
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Location")
+                } footer: {
+                    Text("Select your state to get accurate answers for state-specific questions (capital, governor, senators).")
                         .font(.caption)
                 }
                 
@@ -205,6 +240,27 @@ struct SettingsView: View {
                     Text("Legal")
                 }
                 
+                // Support Section with Tips
+                Section {
+                    Button(action: {
+                        showingTipSheet = true
+                    }) {
+                        HStack {
+                            Label("Leave a Tip", systemImage: "heart.fill")
+                                .foregroundColor(.pink)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Support")
+                } footer: {
+                    Text("Support future updates and improvements by leaving a tip.")
+                        .font(.caption)
+                }
+                
                 // Data Management Section
                 Section {
                     Button(role: .destructive, action: {
@@ -257,6 +313,73 @@ struct SettingsView: View {
             }
             .sheet(item: $selectedWebLink) { link in
                 WebViewSheet(url: link.url, title: link.title)
+            }
+            .sheet(isPresented: $showingStateSelector) {
+                StateSelectorView(stateManager: stateManager)
+            }
+            .sheet(isPresented: $showingTipSheet) {
+                TipJarView()
+            }
+        }
+    }
+}
+
+// State Selector View
+struct StateSelectorView: View {
+    @ObservedObject var stateManager: StateManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    
+    private var filteredStates: [USState] {
+        if searchText.isEmpty {
+            return stateManager.allStates
+        } else {
+            return stateManager.allStates.filter { state in
+                state.name.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(filteredStates) { state in
+                    Button(action: {
+                        stateManager.selectedState = state
+                        dismiss()
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(state.name)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                
+                                Text("Capital: \(state.capital)")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if stateManager.selectedState?.id == state.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "Search states")
+            .navigationTitle("Select Your State")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
             }
         }
     }
@@ -556,6 +679,204 @@ struct ScoreDetailView: View {
     }
 }
 
+// Tip Jar View
+struct TipJarView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var isAnimating = false
+    @State private var showContent = false
+    
+    private let usRed = Color(red: 178/255, green: 34/255, blue: 52/255)
+    private let usBlue = Color(red: 60/255, green: 59/255, blue: 110/255)
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header with animated heart
+                    VStack(spacing: 20) {
+                        ZStack {
+                            // Pulsing circles behind heart
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.pink.opacity(0.3), .red.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 140, height: 140)
+                                .scaleEffect(isAnimating ? 1.1 : 0.9)
+                                .opacity(isAnimating ? 0.5 : 0.8)
+                                .animation(
+                                    .easeInOut(duration: 2.0).repeatForever(autoreverses: true),
+                                    value: isAnimating
+                                )
+                            
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.pink.opacity(0.2), .red.opacity(0.1)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 170, height: 170)
+                                .scaleEffect(isAnimating ? 1.2 : 0.8)
+                                .opacity(isAnimating ? 0.3 : 0.6)
+                                .animation(
+                                    .easeInOut(duration: 2.5).repeatForever(autoreverses: true),
+                                    value: isAnimating
+                                )
+                            
+                            // Main heart icon
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 70))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.pink, .red],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .scaleEffect(isAnimating ? 1.05 : 1.0)
+                                .animation(
+                                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
+                                    value: isAnimating
+                                )
+                                .shadow(color: .pink.opacity(0.5), radius: 20, x: 0, y: 10)
+                        }
+                        .opacity(showContent ? 1 : 0)
+                        .scaleEffect(showContent ? 1 : 0.5)
+                        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: showContent)
+                        
+                        VStack(spacing: 12) {
+                            Text("Support This App")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 20)
+                                .animation(.easeOut(duration: 0.5).delay(0.2), value: showContent)
+                            
+                            Text("Help keep this app free and ad-free for everyone")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                                .opacity(showContent ? 1 : 0)
+                                .offset(y: showContent ? 0 : 20)
+                                .animation(.easeOut(duration: 0.5).delay(0.3), value: showContent)
+                        }
+                    }
+                    .padding(.top, 40)
+                    
+                    // Store View - Main Focus
+                    VStack(spacing: 20) {
+                        Text("Leave a Tip")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .opacity(showContent ? 1 : 0)
+                            .offset(y: showContent ? 0 : 20)
+                            .animation(.easeOut(duration: 0.5).delay(0.4), value: showContent)
+                        
+                        StoreView(ids: ["smalltip.citizpractice"])
+                            .productViewStyle(.large)
+                            .storeButton(.visible, for: .redeemCode)
+                            .opacity(showContent ? 1 : 0)
+                            .scaleEffect(showContent ? 1 : 0.9)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.5), value: showContent)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color(UIColor.secondarySystemGroupedBackground))
+                            .shadow(color: .pink.opacity(0.1), radius: 15, x: 0, y: 5)
+                    )
+                    .padding(.horizontal)
+                    
+                    // Simplified Benefits - Less prominent
+                    VStack(spacing: 10) {
+                        Text("Your support helps with:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                            .tracking(1)
+                        
+                        HStack(spacing: 20) {
+                            BenefitChip(icon: "arrow.clockwise", text: "Updates")
+                            BenefitChip(icon: "sparkles", text: "Features")
+                            BenefitChip(icon: "globe.americas", text: "Community")
+                        }
+                    }
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
+                    .animation(.easeOut(duration: 0.5).delay(0.6), value: showContent)
+                    .padding(.horizontal)
+                    
+                    // Thank you message
+                    VStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 30))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.yellow, .orange],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        Text("Every tip makes a difference")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : 20)
+                    .animation(.easeOut(duration: 0.5).delay(0.7), value: showContent)
+                    .padding(.bottom, 40)
+                }
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle("Tip Jar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .onAppear {
+                isAnimating = true
+                showContent = true
+            }
+        }
+    }
+}
+
+// Simplified Benefit Chip
+struct BenefitChip: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.secondary)
+            
+            Text(text)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color(UIColor.tertiarySystemGroupedBackground))
+        .cornerRadius(12)
+    }
+}
+
 #Preview {
-    SettingsView(scoreManager: ScoreManager(), appearanceManager: AppearanceManager())
+    SettingsView(scoreManager: ScoreManager(), appearanceManager: AppearanceManager(), stateManager: StateManager())
 }

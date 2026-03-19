@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PracticeView: View {
     @ObservedObject var questionService: QuestionService
+    @ObservedObject var stateManager: StateManager
     @State private var currentIndex = 0
     @State private var selectedAnswer: String?
     @State private var showAnswer = false
@@ -23,19 +24,23 @@ struct PracticeView: View {
         questionService.allQuestions[currentIndex]
     }
     
+    private var currentAnswers: [String] {
+        currentQuestion.getAnswers(stateManager: stateManager)
+    }
+    
+    private var currentCorrectAnswers: [String] {
+        currentQuestion.getCorrectAnswers(stateManager: stateManager)
+    }
+    
     private var progress: Double {
         Double(currentIndex + 1) / Double(questionService.allQuestions.count)
     }
     
     var body: some View {
         ZStack {
-            // American flag-inspired background
-            LinearGradient(
-                gradient: Gradient(colors: [usBlue, usRed.opacity(0.3), .white]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Solid background for better readability
+            usBlue.opacity(0.15)
+                .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Progress header
@@ -59,7 +64,7 @@ struct PracticeView: View {
                 }
                 .padding(.top)
                 .padding(.bottom, 12)
-                .background(usBlue.opacity(0.8))
+                .background(usBlue)
                 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -71,7 +76,7 @@ struct PracticeView: View {
                                     .font(.caption)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(.white.opacity(0.9))
+                                    .background(Color(UIColor.systemBackground))
                                     .foregroundColor(usBlue)
                                     .cornerRadius(20)
                                 
@@ -91,17 +96,17 @@ struct PracticeView: View {
                             Text(currentQuestion.question)
                                 .font(.title2)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, 8)
                             
                             // Answer options
                             VStack(spacing: 12) {
-                                ForEach(currentQuestion.answers, id: \.self) { answer in
+                                ForEach(currentAnswers, id: \.self) { answer in
                                     AnswerButton(
                                         answer: answer,
                                         isSelected: selectedAnswer == answer,
-                                        isCorrect: currentQuestion.isCorrect(answer: answer),
+                                        isCorrect: currentCorrectAnswers.contains(answer),
                                         showAnswer: showAnswer,
                                         usBlue: usBlue,
                                         usRed: usRed
@@ -118,37 +123,37 @@ struct PracticeView: View {
                                     Divider()
                                         .background(.white.opacity(0.5))
                                     
-                                    Text("Correct Answer\(currentQuestion.correctAnswers.count > 1 ? "s" : ""):")
+                                    Text("Correct Answer\(currentCorrectAnswers.count > 1 ? "s" : ""):")
                                         .font(.headline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     
-                                    ForEach(currentQuestion.correctAnswers, id: \.self) { correctAnswer in
+                                    ForEach(currentCorrectAnswers, id: \.self) { correctAnswer in
                                         HStack {
                                             Image(systemName: "checkmark.circle.fill")
                                                 .foregroundColor(.green)
                                             Text(correctAnswer)
                                                 .font(.body)
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                         }
                                         .padding(.vertical, 4)
                                     }
                                     
-                                    if currentQuestion.correctAnswers.count > 1 {
+                                    if currentCorrectAnswers.count > 1 {
                                         Text("Note: Any of these answers is acceptable")
                                             .font(.caption)
-                                            .foregroundColor(.white.opacity(0.8))
+                                            .foregroundColor(.secondary)
                                             .italic()
                                             .padding(.top, 4)
                                     }
                                 }
                                 .padding()
-                                .background(.white.opacity(0.2))
+                                .background(Color(UIColor.secondarySystemGroupedBackground))
                                 .cornerRadius(12)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                         }
                         .padding(24)
-                        .background(.white.opacity(0.15))
+                        .background(Color(UIColor.secondarySystemGroupedBackground))
                         .cornerRadius(16)
                         .shadow(color: usBlue.opacity(0.3), radius: 10, y: 5)
                         .padding(.horizontal)
@@ -164,7 +169,7 @@ struct PracticeView: View {
                             Label("Previous", systemImage: "arrow.left")
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.white.opacity(0.9))
+                                .background(Color(UIColor.systemBackground))
                                 .foregroundColor(usBlue)
                                 .cornerRadius(12)
                                 .fontWeight(.semibold)
@@ -203,7 +208,7 @@ struct PracticeView: View {
                     }
                 }
                 .padding()
-                .background(.white.opacity(0.05))
+                .background(Color(UIColor.tertiarySystemGroupedBackground))
             }
         }
         .navigationTitle("Practice All Questions")
@@ -254,7 +259,7 @@ struct PracticeView: View {
     private func checkAnswer() {
         guard let selected = selectedAnswer else { return }
         
-        let isCorrect = currentQuestion.isCorrect(answer: selected)
+        let isCorrect = currentCorrectAnswers.contains(selected)
         answeredQuestions[currentIndex] = isCorrect
         
         if isCorrect {
@@ -300,7 +305,7 @@ struct AnswerButton: View {
                         .foregroundColor(usBlue)
                 } else {
                     Image(systemName: "circle")
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(.secondary)
                 }
             }
             .padding()
@@ -343,15 +348,17 @@ struct AnswerButton: View {
     private var textColor: Color {
         if showAnswer {
             if isCorrect || (isSelected && !isCorrect) {
-                return .white
+                return .primary
             }
+        } else if isSelected {
+            return .primary
         }
-        return .white
+        return .primary
     }
 }
 
 #Preview {
     NavigationStack {
-        PracticeView(questionService: QuestionService())
+        PracticeView(questionService: QuestionService(), stateManager: StateManager())
     }
 }

@@ -11,8 +11,11 @@ struct ContentView: View {
     @StateObject private var questionService = QuestionService()
     @StateObject private var scoreManager = ScoreManager()
     @StateObject private var appearanceManager = AppearanceManager()
-    @State private var showingDisclaimer = true
+    @StateObject private var stateManager = StateManager()
+    @State private var showingDisclaimer = false
     @State private var showingSettings = false
+    @State private var showingStatePrompt = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     // US Flag colors
     private let usRed = Color(red: 178/255, green: 34/255, blue: 52/255)
@@ -21,8 +24,8 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Clean white background
-                Color.white
+                // Light background for better readability
+                Color(UIColor.systemGroupedBackground)
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -242,7 +245,7 @@ struct ContentView: View {
                         GlassEffectContainer(spacing: 20.0) {
                             VStack(spacing: 12) {
                                 // Categories button
-                                NavigationLink(destination: CategorySelectionView(questionService: questionService)) {
+                                NavigationLink(destination: CategorySelectionView(questionService: questionService, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "folder.fill",
                                         title: "Study by Category",
@@ -253,7 +256,7 @@ struct ContentView: View {
 
                                 
                                 // Flashcards button
-                                NavigationLink(destination: FlashcardView(questionService: questionService)) {
+                                NavigationLink(destination: FlashcardView(questionService: questionService, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "rectangle.stack.fill",
                                         title: "Flashcards",
@@ -263,7 +266,7 @@ struct ContentView: View {
                                 }
                                 
                                 // Practice All Questions button
-                                NavigationLink(destination: PracticeView(questionService: questionService)) {
+                                NavigationLink(destination: PracticeView(questionService: questionService, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "book.fill",
                                         title: "Practice Mode",
@@ -273,7 +276,7 @@ struct ContentView: View {
                                 }
                                 
                                 // Test Mode button (10 random questions)
-                                NavigationLink(destination: TestModeView(questionService: questionService, scoreManager: scoreManager)) {
+                                NavigationLink(destination: TestModeView(questionService: questionService, scoreManager: scoreManager, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "checkmark.seal.fill",
                                         title: "Practice Test",
@@ -305,9 +308,40 @@ struct ContentView: View {
                 Text("This app is solely for practice purposes using 2026 USCIS questions. While we strive for accuracy, this app cannot guarantee that you will pass your citizenship exam. Please use official USCIS resources for the most up-to-date information.")
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(scoreManager: scoreManager, appearanceManager: appearanceManager)
+                SettingsView(scoreManager: scoreManager, appearanceManager: appearanceManager, stateManager: stateManager)
+            }
+            .sheet(isPresented: $showingStatePrompt) {
+                StateSelectorView(stateManager: stateManager)
             }
             .preferredColorScheme(appearanceManager.appearanceMode.colorScheme)
+            .onAppear {
+                // Show state selection first, then disclaimer on first launch
+                if !hasCompletedOnboarding {
+                    if !stateManager.hasSelectedState {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showingStatePrompt = true
+                        }
+                    } else {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showingDisclaimer = true
+                        }
+                    }
+                }
+            }
+            .onChange(of: showingStatePrompt) { oldValue, newValue in
+                // When state prompt is dismissed, show disclaimer
+                if oldValue && !newValue && !hasCompletedOnboarding {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showingDisclaimer = true
+                    }
+                }
+            }
+            .onChange(of: showingDisclaimer) { oldValue, newValue in
+                // Mark onboarding complete when disclaimer is dismissed
+                if oldValue && !newValue && !hasCompletedOnboarding {
+                    hasCompletedOnboarding = true
+                }
+            }
         }
     }
 }

@@ -10,9 +10,10 @@ import SwiftUI
 struct TestModeView: View {
     @ObservedObject var questionService: QuestionService
     @ObservedObject var scoreManager: ScoreManager
+    @ObservedObject var stateManager: StateManager
     @State private var testQuestions: [Question] = []
     @State private var currentQuestionIndex = 0
-    @State private var selectedAnswers: [String?] = []
+    @State private var selectedAnswers: [Set<String>] = []
     @State private var score = 0
     @State private var showingResults = false
     @State private var startTime = Date()
@@ -23,13 +24,9 @@ struct TestModeView: View {
     
     var body: some View {
         ZStack {
-            // American flag-inspired background
-            LinearGradient(
-                gradient: Gradient(colors: [usBlue, usRed.opacity(0.3), .white]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Solid background for better readability
+            usBlue.opacity(0.15)
+                .ignoresSafeArea()
             
             if !showingResults {
                 // Test in progress
@@ -59,18 +56,23 @@ struct TestModeView: View {
                     }
                     .padding(.top)
                     .padding(.bottom, 12)
-                    .background(usBlue.opacity(0.8))
+                    .background(usBlue)
                     
                     ScrollView {
                         if !testQuestions.isEmpty && currentQuestionIndex < testQuestions.count && currentQuestionIndex < selectedAnswers.count {
                             TestQuestionCard(
                                 question: testQuestions[currentQuestionIndex],
-                                selectedAnswer: selectedAnswers[currentQuestionIndex],
-                                onAnswerSelected: { answer in
-                                    selectedAnswers[currentQuestionIndex] = answer
+                                selectedAnswers: selectedAnswers[currentQuestionIndex],
+                                onAnswerToggled: { answer in
+                                    if selectedAnswers[currentQuestionIndex].contains(answer) {
+                                        selectedAnswers[currentQuestionIndex].remove(answer)
+                                    } else {
+                                        selectedAnswers[currentQuestionIndex].insert(answer)
+                                    }
                                 },
                                 usBlue: usBlue,
-                                usRed: usRed
+                                usRed: usRed,
+                                stateManager: stateManager
                             )
                             .padding()
                         }
@@ -83,7 +85,7 @@ struct TestModeView: View {
                                 Label("Previous", systemImage: "arrow.left")
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(.white.opacity(0.9))
+                                    .background(Color(UIColor.systemBackground))
                                     .foregroundColor(usBlue)
                                     .cornerRadius(12)
                                     .fontWeight(.semibold)
@@ -97,15 +99,15 @@ struct TestModeView: View {
                             )
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background((currentQuestionIndex < selectedAnswers.count && selectedAnswers[currentQuestionIndex] != nil) ? usRed : Color.gray.opacity(0.5))
+                            .background((currentQuestionIndex < selectedAnswers.count && !selectedAnswers[currentQuestionIndex].isEmpty) ? usRed : Color.gray.opacity(0.5))
                             .foregroundColor(.white)
                             .cornerRadius(12)
                             .fontWeight(.semibold)
                         }
-                        .disabled(currentQuestionIndex >= selectedAnswers.count || selectedAnswers[currentQuestionIndex] == nil)
+                        .disabled(currentQuestionIndex >= selectedAnswers.count || selectedAnswers[currentQuestionIndex].isEmpty)
                     }
                     .padding()
-                    .background(.white.opacity(0.1))
+                    .background(Color(UIColor.tertiarySystemGroupedBackground))
                 }
             } else {
                 // Test results
@@ -118,7 +120,8 @@ struct TestModeView: View {
                     usBlue: usBlue,
                     usRed: usRed,
                     onRetake: retakeTest,
-                    onDismiss: { dismiss() }
+                    onDismiss: { dismiss() },
+                    stateManager: stateManager
                 )
             }
         }
@@ -138,7 +141,7 @@ struct TestModeView: View {
     private func startTest() {
         // Reset everything - answers reset each time
         testQuestions = questionService.getTestQuestions(count: 10)
-        selectedAnswers = Array(repeating: nil, count: testQuestions.count)
+        selectedAnswers = Array(repeating: Set<String>(), count: testQuestions.count)
         currentQuestionIndex = 0
         score = 0
         showingResults = false
@@ -174,7 +177,8 @@ struct TestModeView: View {
         // Calculate score and track performance by category
         for (index, question) in testQuestions.enumerated() {
             let category = question.category.rawValue
-            let isCorrect = selectedAnswers[index] != nil && question.isCorrect(answer: selectedAnswers[index]!)
+            let correctAnswers = Set(question.getCorrectAnswers(stateManager: stateManager))
+            let isCorrect = !selectedAnswers[index].isEmpty && selectedAnswers[index] == correctAnswers
             
             if isCorrect {
                 score += 1
@@ -214,10 +218,15 @@ struct TestModeView: View {
 // Test question card
 struct TestQuestionCard: View {
     let question: Question
-    let selectedAnswer: String?
-    let onAnswerSelected: (String) -> Void
+    let selectedAnswers: Set<String>
+    let onAnswerToggled: (String) -> Void
     let usBlue: Color
     let usRed: Color
+    @ObservedObject var stateManager: StateManager
+    
+    private var hasMultipleCorrectAnswers: Bool {
+        question.getCorrectAnswers(stateManager: stateManager).count > 1
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -227,7 +236,7 @@ struct TestQuestionCard: View {
                     .font(.caption)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(.white.opacity(0.9))
+                    .background(Color(UIColor.systemBackground))
                     .foregroundColor(usBlue)
                     .cornerRadius(20)
                 
@@ -247,39 +256,53 @@ struct TestQuestionCard: View {
             Text(question.question)
                 .font(.title3)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
             
+            // Multiple selection hint
+            if hasMultipleCorrectAnswers {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.caption)
+                    Text("Select all correct answers")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .italic()
+                }
+                .padding(.vertical, 4)
+            }
+            
             // Answer options
             VStack(spacing: 12) {
-                ForEach(question.answers, id: \.self) { answer in
+                ForEach(question.getTestAnswers(stateManager: stateManager), id: \.self) { answer in
                     Button(action: {
-                        onAnswerSelected(answer)
+                        onAnswerToggled(answer)
                     }) {
                         HStack {
                             Text(answer)
                                 .font(.body)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .multilineTextAlignment(.leading)
                             
                             Spacer()
                             
-                            if selectedAnswer == answer {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.white)
+                            if selectedAnswers.contains(answer) {
+                                Image(systemName: hasMultipleCorrectAnswers ? "checkmark.square.fill" : "checkmark.circle.fill")
+                                    .foregroundColor(usBlue)
                             } else {
-                                Image(systemName: "circle")
-                                    .foregroundColor(.white.opacity(0.5))
+                                Image(systemName: hasMultipleCorrectAnswers ? "square" : "circle")
+                                    .foregroundColor(.secondary)
                             }
                         }
                         .padding()
                         .background(
-                            selectedAnswer == answer ? usBlue.opacity(0.6) : .white.opacity(0.15)
+                            selectedAnswers.contains(answer) ? usBlue.opacity(0.6) : .white.opacity(0.15)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(selectedAnswer == answer ? .white : .white.opacity(0.3), lineWidth: 2)
+                                .stroke(selectedAnswers.contains(answer) ? .white : .white.opacity(0.3), lineWidth: 2)
                         )
                         .cornerRadius(12)
                     }
@@ -288,7 +311,7 @@ struct TestQuestionCard: View {
             .padding(.top, 8)
         }
         .padding(24)
-        .background(.white.opacity(0.15))
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(16)
         .shadow(color: usBlue.opacity(0.3), radius: 10, y: 5)
     }
@@ -299,12 +322,13 @@ struct TestResultsScreen: View {
     let score: Int
     let totalQuestions: Int
     let questions: [Question]
-    let selectedAnswers: [String?]
+    let selectedAnswers: [Set<String>]
     let timeSpent: TimeInterval
     let usBlue: Color
     let usRed: Color
     let onRetake: () -> Void
     let onDismiss: () -> Void
+    @ObservedObject var stateManager: StateManager
     
     private var percentage: Double {
         Double(score) / Double(totalQuestions) * 100
@@ -327,11 +351,11 @@ struct TestResultsScreen: View {
                     Text(passed ? "Congratulations!" : "Keep Practicing!")
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text(passed ? "You passed the USCIS test!" : "You need 6 or more to pass")
                         .font(.headline)
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(.secondary)
                 }
                 .padding(.top, 40)
                 
@@ -373,7 +397,7 @@ struct TestResultsScreen: View {
                     }
                 }
                 .padding()
-                .background(.white.opacity(0.95))
+                .background(Color(UIColor.systemBackground))
                 .cornerRadius(16)
                 .shadow(color: usBlue.opacity(0.3), radius: 8, y: 4)
                 .padding(.horizontal)
@@ -384,7 +408,7 @@ struct TestResultsScreen: View {
                         .foregroundColor(passed ? .green : .red)
                     Text(passed ? "PASSED - Ready for the real test!" : "FAILED - Keep studying")
                         .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 .padding()
                 .background(passed ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
@@ -395,7 +419,7 @@ struct TestResultsScreen: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Review Your Answers")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .padding(.horizontal)
                     
                     ForEach(Array(questions.enumerated()), id: \.element.id) { index, question in
@@ -404,7 +428,8 @@ struct TestResultsScreen: View {
                             selectedAnswer: selectedAnswers[index],
                             questionNumber: index + 1,
                             usBlue: usBlue,
-                            usRed: usRed
+                            usRed: usRed,
+                            stateManager: stateManager
                         )
                     }
                 }
@@ -426,7 +451,7 @@ struct TestResultsScreen: View {
                         Label("Back to Home", systemImage: "house.fill")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(.white.opacity(0.9))
+                            .background(Color(UIColor.systemBackground))
                             .foregroundColor(usBlue)
                             .cornerRadius(12)
                             .fontWeight(.semibold)
@@ -448,14 +473,15 @@ struct TestResultsScreen: View {
 // Question review card
 struct QuestionReviewCard: View {
     let question: Question
-    let selectedAnswer: String?
+    let selectedAnswer: Set<String>
     let questionNumber: Int
     let usBlue: Color
     let usRed: Color
+    @ObservedObject var stateManager: StateManager
     
     private var isCorrect: Bool {
-        guard let selected = selectedAnswer else { return false }
-        return question.isCorrect(answer: selected)
+        let correctAnswers = Set(question.getCorrectAnswers(stateManager: stateManager))
+        return !selectedAnswer.isEmpty && selectedAnswer == correctAnswers
     }
     
     var body: some View {
@@ -480,26 +506,32 @@ struct QuestionReviewCard: View {
             Text(question.question)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
-            if let selected = selectedAnswer {
+            if !selectedAnswer.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Your answer:")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                        Text(selected)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(isCorrect ? .green : .red)
+                    Text("Your answer(s):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    ForEach(Array(selectedAnswer).sorted(), id: \.self) { answer in
+                        HStack {
+                            Image(systemName: "circle.fill")
+                                .font(.caption2)
+                            Text(answer)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(isCorrect ? .green : .red)
                     }
                     
                     if !isCorrect {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Correct answer(s):")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                            ForEach(question.correctAnswers, id: \.self) { answer in
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                            ForEach(question.getCorrectAnswers(stateManager: stateManager), id: \.self) { answer in
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.caption)
@@ -511,10 +543,15 @@ struct QuestionReviewCard: View {
                         }
                     }
                 }
+            } else {
+                Text("No answer selected")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
             }
         }
         .padding()
-        .background(.white.opacity(0.15))
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .padding(.horizontal)
     }
@@ -522,6 +559,6 @@ struct QuestionReviewCard: View {
 
 #Preview {
     NavigationStack {
-        TestModeView(questionService: QuestionService(), scoreManager: ScoreManager())
+        TestModeView(questionService: QuestionService(), scoreManager: ScoreManager(), stateManager: StateManager())
     }
 }
