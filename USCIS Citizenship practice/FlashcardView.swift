@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct FlashcardView: View {
     @ObservedObject var questionService: QuestionService
@@ -111,6 +112,9 @@ struct FlashcardView: View {
                     .opacity(currentIndex >= questionCount - 1 ? 0.3 : 1.0)
                 }
                 .padding(.bottom, 40)
+                
+                BannerViewContainer(bannerAdType: .flashCardAd)
+                .frame(height: 50)
             }
         }
         .navigationTitle("Flashcards")

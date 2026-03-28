@@ -1,0 +1,69 @@
+//
+//  BannerAdVC.swift
+//  Frass History
+//
+//  Created by Chad on 11/25/21.
+//
+
+import Foundation
+import UIKit
+import GoogleMobileAds
+import SwiftUI
+
+// [START create_banner_view]
+struct BannerViewContainer: UIViewRepresentable {
+	public typealias UIViewType = BannerView
+	let bannerAdType: BannerAdType
+	
+	init(bannerAdType: BannerAdType) {
+		self.bannerAdType = bannerAdType
+	}
+	
+	public func makeUIView(context: Context) -> BannerView {
+		let adSize = currentOrientationAnchoredAdaptiveBanner(width: 375)
+		let banner = BannerView(adSize: adSize)
+		
+		banner.adUnitID = bannerAdType.rawValue
+		
+		// Set root view controller
+		if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+		   let rootViewController = windowScene.windows.first?.rootViewController {
+			banner.rootViewController = rootViewController
+		}
+		
+		banner.load(Request())
+		banner.delegate = context.coordinator
+		// [END set_delegate]
+		return banner
+	}
+	
+	func updateUIView(_ uiView: BannerView, context: Context) {}
+	
+	func makeCoordinator() -> BannerCoordinator {
+		return BannerCoordinator(self)
+	}
+	
+	class BannerCoordinator: NSObject, BannerViewDelegate {
+		
+		let parent: BannerViewContainer
+		
+		init(_ parent: BannerViewContainer) {
+			self.parent = parent
+		}
+
+		
+		func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+			print("DID RECEIVE AD.")
+		}
+		
+		func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
+			print("FAILED TO RECEIVE AD: \(error.localizedDescription)")
+		}
+	}
+}
+// Helper function for adaptive banner size
+func currentOrientationAnchoredAdaptiveBanner(width: CGFloat) -> AdSize {
+	// Use the GoogleMobileAds framework function
+	return GoogleMobileAds.currentOrientationAnchoredAdaptiveBanner(width: width)
+}
+

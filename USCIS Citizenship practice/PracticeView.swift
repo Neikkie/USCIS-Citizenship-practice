@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct PracticeView: View {
     @ObservedObject var questionService: QuestionService
@@ -150,6 +151,8 @@ struct PracticeView: View {
                                 .background(Color(UIColor.secondarySystemGroupedBackground))
                                 .cornerRadius(12)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
+                                
+                                
                             }
                         }
                         .padding(24)
@@ -209,6 +212,9 @@ struct PracticeView: View {
                 }
                 .padding()
                 .background(Color(UIColor.tertiarySystemGroupedBackground))
+                
+                BannerViewContainer(bannerAdType: .practiceAd)
+                .frame(height: 50)
             }
         }
         .navigationTitle("Practice All Questions")

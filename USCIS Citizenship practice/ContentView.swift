@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct ContentView: View {
     @StateObject private var questionService = QuestionService()
@@ -23,12 +24,13 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Light background for better readability
-                Color(UIColor.systemGroupedBackground)
-                    .ignoresSafeArea()
-                
-                ScrollView {
+            VStack(spacing: 0) {
+                ZStack {
+                    // Light background for better readability
+                    Color(UIColor.systemGroupedBackground)
+                        .ignoresSafeArea()
+                    
+                    ScrollView {
                     VStack(spacing: 20) {
                         // Header
                         VStack(spacing: 8) {
@@ -290,6 +292,12 @@ struct ContentView: View {
                     }
                     .padding(.bottom, 32)
                 }
+            }
+            
+            // AdMob Banner at bottom
+                BannerViewContainer(bannerAdType: .mainBannerAd)
+                .frame(height: 50)
+                
             }
             .navigationBarHidden(false)
             .toolbar {

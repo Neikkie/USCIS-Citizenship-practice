@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct TestModeView: View {
     @ObservedObject var questionService: QuestionService
@@ -105,9 +106,14 @@ struct TestModeView: View {
                             .fontWeight(.semibold)
                         }
                         .disabled(currentQuestionIndex >= selectedAnswers.count || selectedAnswers[currentQuestionIndex].isEmpty)
+                        
                     }
                     .padding()
                     .background(Color(UIColor.tertiarySystemGroupedBackground))
+                    
+                    BannerViewContainer(bannerAdType: .testViewAd)
+                    .frame(height: 50)
+                    
                 }
             } else {
                 // Test results
