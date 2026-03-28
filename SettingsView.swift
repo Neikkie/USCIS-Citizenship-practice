@@ -22,7 +22,7 @@ struct SettingsView: View {
     private let usBlue = Color(red: 60/255, green: 59/255, blue: 110/255)
     
     enum WebLink: Identifiable {
-        case about, home, privacyPolicy, termsAndConditions, usage
+        case about, home, privacyPolicy, termsAndConditions, usage, responsibleGaming
         
         var id: String {
             switch self {
@@ -31,6 +31,7 @@ struct SettingsView: View {
             case .privacyPolicy: return "privacy"
             case .termsAndConditions: return "terms"
             case .usage: return "usage"
+            case .responsibleGaming: return "responsible"
             }
         }
         
@@ -41,21 +42,24 @@ struct SettingsView: View {
             case .privacyPolicy: return "Privacy Policy"
             case .termsAndConditions: return "Terms and Conditions"
             case .usage: return "Usage"
+            case .responsibleGaming: return "Responsible Use"
             }
         }
         
         var url: URL {
             switch self {
             case .about:
-                return URL(string: "https://dinerdapps.wixsite.com/website-4/about")!
+                return URL(string: "https://neikkie.github.io/USCIS-Citizenship-practice/about.html")!
             case .home:
-                return URL(string: "https://dinerdapps.wixsite.com/website-4")!
+                return URL(string: "https://neikkie.github.io/USCIS-Citizenship-practice/index.html")!
             case .privacyPolicy:
-                return URL(string: "https://dinerdapps.wixsite.com/website-4/privacy-policy")!
+                return URL(string: "https://neikkie.github.io/USCIS-Citizenship-practice/privacy.html")!
             case .termsAndConditions:
-                return URL(string: "https://dinerdapps.wixsite.com/website-4/blank-page")!
+                return URL(string: "https://neikkie.github.io/USCIS-Citizenship-practice/terms.html")!
             case .usage:
-                return URL(string: "https://dinerdapps.wixsite.com/website-4/about-1")!
+                return URL(string: "https://neikkie.github.io/USCIS-Citizenship-practice/usage.html")!
+            case .responsibleGaming:
+                return URL(string: "https://neikkie.github.io/USCIS-Citizenship-practice/")!
             }
         }
     }
