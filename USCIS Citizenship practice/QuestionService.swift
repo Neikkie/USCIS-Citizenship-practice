@@ -120,9 +120,10 @@ class QuestionService: ObservableObject {
                     category: .americanGovernment),
             
             Question(number: 20, question: "Who is one of your state's U.S. Senators now?",
-                    answers: ["Answers will vary", "Check USCIS website for current senators", "Your state's senator name", "Contact your state office"],
-                    correctAnswers: ["Answers will vary"],
-                    category: .americanGovernment),
+                    answers: ["Answer based on your state", "See your state's current senators", "Varies by state - your senator's name", "Your state determines this"],
+                    correctAnswers: ["Answer based on your state"],
+                    category: .americanGovernment,
+                    isStateSpecific: true),
             
             Question(number: 21, question: "The House of Representatives has how many voting members?",
                     answers: ["Four hundred thirty-five (435)", "One hundred (100)", "Five hundred (500)", "Two hundred (200)"],
@@ -135,9 +136,10 @@ class QuestionService: ObservableObject {
                     category: .americanGovernment),
             
             Question(number: 23, question: "Name your U.S. Representative.",
-                    answers: ["Answers will vary", "Check USCIS website for your representative", "Your district's representative", "Contact your district office"],
-                    correctAnswers: ["Answers will vary"],
-                    category: .americanGovernment),
+                    answers: ["Answer varies by congressional district", "Find your representative at house.gov", "Depends on your district within your state", "Look up using your ZIP code"],
+                    correctAnswers: ["Answer varies by congressional district", "Find your representative at house.gov", "Depends on your district within your state"],
+                    category: .americanGovernment,
+                    isStateSpecific: true),
             
             Question(number: 24, question: "Who does a U.S. Senator represent?",
                     answers: ["All people of the state", "Everyone in the state", "The state's citizens", "The state"],
@@ -160,12 +162,12 @@ class QuestionService: ObservableObject {
                     category: .americanGovernment),
             
             Question(number: 28, question: "What is the name of the President of the United States now?",
-                    answers: ["Donald Trump", "President Trump", "Trump", "Check USCIS for current president"],
+                    answers: ["Donald Trump", "President Trump", "Trump", "Joe Biden"],
                     correctAnswers: ["Donald Trump", "President Trump", "Trump"],
                     category: .americanGovernment),
             
             Question(number: 29, question: "What is the name of the Vice President of the United States now?",
-                    answers: ["JD Vance", "Vance", "Vice President Vance", "Check USCIS for current VP"],
+                    answers: ["JD Vance", "Vance", "Vice President Vance", "Kamala Harris"],
                     correctAnswers: ["JD Vance", "Vance", "Vice President Vance"],
                     category: .americanGovernment),
             
@@ -220,7 +222,7 @@ class QuestionService: ObservableObject {
                     category: .americanGovernment),
             
             Question(number: 40, question: "Who is the Chief Justice of the United States now?",
-                    answers: ["John Roberts", "Roberts", "Chief Justice Roberts", "Check USCIS for current"],
+                    answers: ["John Roberts", "Roberts", "Chief Justice Roberts", "John G. Roberts Jr."],
                     correctAnswers: ["John Roberts", "Roberts", "Chief Justice Roberts"],
                     category: .americanGovernment),
             
@@ -235,14 +237,16 @@ class QuestionService: ObservableObject {
                     category: .americanGovernment),
             
             Question(number: 43, question: "Who is the Governor of your state now?",
-                    answers: ["Answers will vary", "Check your state website", "Your state's governor", "Varies by state"],
-                    correctAnswers: ["Answers will vary"],
-                    category: .americanGovernment),
+                    answers: ["Answer based on your state", "See your state's current governor", "Varies by state - your governor's name", "Your state determines this"],
+                    correctAnswers: ["Answer based on your state"],
+                    category: .americanGovernment,
+                    isStateSpecific: true),
             
             Question(number: 44, question: "What is the capital of your state?",
-                    answers: ["Answers will vary", "Check your state", "Your state capital", "Varies by state"],
-                    correctAnswers: ["Answers will vary"],
-                    category: .americanGovernment),
+                    answers: ["Answer based on your state", "See your state's capital city", "Varies by state - your capital", "Your state determines this"],
+                    correctAnswers: ["Answer based on your state"],
+                    category: .americanGovernment,
+                    isStateSpecific: true),
             
             Question(number: 45, question: "What are the two major political parties in the United States?",
                     answers: ["Democratic and Republican", "Democrat and Republican", "Democratic Party and Republican Party", "Liberal and Conservative"],
@@ -255,7 +259,7 @@ class QuestionService: ObservableObject {
                     category: .americanGovernment),
             
             Question(number: 47, question: "What is the name of the Speaker of the House of Representatives now?",
-                    answers: ["Mike Johnson", "Johnson", "Speaker Johnson", "Check USCIS for current"],
+                    answers: ["Mike Johnson", "Johnson", "Speaker Johnson", "Nancy Pelosi"],
                     correctAnswers: ["Mike Johnson", "Johnson", "Speaker Johnson"],
                     category: .americanGovernment),
             

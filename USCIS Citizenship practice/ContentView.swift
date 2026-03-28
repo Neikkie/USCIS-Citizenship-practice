@@ -6,13 +6,17 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct ContentView: View {
     @StateObject private var questionService = QuestionService()
     @StateObject private var scoreManager = ScoreManager()
     @StateObject private var appearanceManager = AppearanceManager()
-    @State private var showingDisclaimer = true
+    @StateObject private var stateManager = StateManager()
+    @State private var showingDisclaimer = false
     @State private var showingSettings = false
+    @State private var showingStatePrompt = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     // US Flag colors
     private let usRed = Color(red: 178/255, green: 34/255, blue: 52/255)
@@ -20,12 +24,13 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Clean white background
-                Color.white
-                    .ignoresSafeArea()
-                
-                ScrollView {
+            VStack(spacing: 0) {
+                ZStack {
+                    // Light background for better readability
+                    Color(UIColor.systemGroupedBackground)
+                        .ignoresSafeArea()
+                    
+                    ScrollView {
                     VStack(spacing: 20) {
                         // Header
                         VStack(spacing: 8) {
@@ -48,7 +53,7 @@ struct ContentView: View {
                         }
                         .padding(.top, 20)
                         
-                        // Statistics card
+                        // Test Overview card
                         VStack(spacing: 14) {
                             Text("📊 Test Overview")
                                 .font(.system(size: 17, weight: .semibold))
@@ -86,6 +91,99 @@ struct ContentView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .shadow(color: Color.black.opacity(0.1), radius: 10, y: 4)
                         .padding(.horizontal, 20)
+                        
+                        // Your Statistics card (if user has taken tests)
+                        if scoreManager.getTotalTestsTaken() > 0 {
+                            VStack(spacing: 14) {
+                                Text("📈 Your Statistics")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                
+                                HStack(spacing: 12) {
+                                    StatItemView(
+                                        value: "\(scoreManager.getTotalTestsTaken())",
+                                        label: "Tests Taken",
+                                        color: usBlue
+                                    )
+                                    
+                                    Divider()
+                                        .frame(height: 40)
+                                    
+                                    if let avgScore = scoreManager.getAverageScore() {
+                                        StatItemView(
+                                            value: "\(avgScore)%",
+                                            label: "Average Score",
+                                            color: avgScore >= 60 ? .green : .orange
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 20)
+                            .background(.thickMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .shadow(color: Color.black.opacity(0.1), radius: 10, y: 4)
+                            .padding(.horizontal, 20)
+                        }
+                        
+                        // Test History Section (Always Visible)
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("📝 Test History")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            
+                            if scoreManager.scoreHistory.isEmpty {
+                                // Empty state
+                                VStack(spacing: 12) {
+                                    Image(systemName: "doc.text.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.secondary)
+                                    
+                                    Text("No tests taken yet")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text("Take a practice test to see your results here")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 30)
+                                .padding(.horizontal, 20)
+                                .background(.thickMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .padding(.horizontal, 20)
+                            } else {
+                                VStack(spacing: 10) {
+                                    ForEach(scoreManager.scoreHistory.reversed().prefix(3)) { record in
+                                        CompactScoreHistoryRow(record: record, usBlue: usBlue, usRed: usRed)
+                                    }
+                                    
+                                    if scoreManager.getTotalTestsTaken() > 3 {
+                                        NavigationLink(destination: ScoreHistoryView(scoreManager: scoreManager)) {
+                                            HStack {
+                                                Text("View All History")
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                    .foregroundColor(.purple)
+                                                Spacer()
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .padding(16)
+                                            .background(.ultraThinMaterial)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                        }
                         
                         // Section title
                         HStack {
@@ -149,7 +247,7 @@ struct ContentView: View {
                         GlassEffectContainer(spacing: 20.0) {
                             VStack(spacing: 12) {
                                 // Categories button
-                                NavigationLink(destination: CategorySelectionView(questionService: questionService)) {
+                                NavigationLink(destination: CategorySelectionView(questionService: questionService, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "folder.fill",
                                         title: "Study by Category",
@@ -160,7 +258,7 @@ struct ContentView: View {
 
                                 
                                 // Flashcards button
-                                NavigationLink(destination: FlashcardView(questionService: questionService)) {
+                                NavigationLink(destination: FlashcardView(questionService: questionService, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "rectangle.stack.fill",
                                         title: "Flashcards",
@@ -170,7 +268,7 @@ struct ContentView: View {
                                 }
                                 
                                 // Practice All Questions button
-                                NavigationLink(destination: PracticeView(questionService: questionService)) {
+                                NavigationLink(destination: PracticeView(questionService: questionService, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "book.fill",
                                         title: "Practice Mode",
@@ -180,7 +278,7 @@ struct ContentView: View {
                                 }
                                 
                                 // Test Mode button (10 random questions)
-                                NavigationLink(destination: TestModeView(questionService: questionService, scoreManager: scoreManager)) {
+                                NavigationLink(destination: TestModeView(questionService: questionService, scoreManager: scoreManager, stateManager: stateManager)) {
                                     StudyMethodCard(
                                         icon: "checkmark.seal.fill",
                                         title: "Practice Test",
@@ -194,6 +292,12 @@ struct ContentView: View {
                     }
                     .padding(.bottom, 32)
                 }
+            }
+            
+            // AdMob Banner at bottom
+                BannerViewContainer(bannerAdType: .mainBannerAd)
+                .frame(height: 50)
+                
             }
             .navigationBarHidden(false)
             .toolbar {
@@ -212,9 +316,40 @@ struct ContentView: View {
                 Text("This app is solely for practice purposes using 2026 USCIS questions. While we strive for accuracy, this app cannot guarantee that you will pass your citizenship exam. Please use official USCIS resources for the most up-to-date information.")
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(scoreManager: scoreManager, appearanceManager: appearanceManager)
+                SettingsView(scoreManager: scoreManager, appearanceManager: appearanceManager, stateManager: stateManager)
+            }
+            .sheet(isPresented: $showingStatePrompt) {
+                StateSelectorView(stateManager: stateManager)
             }
             .preferredColorScheme(appearanceManager.appearanceMode.colorScheme)
+            .onAppear {
+                // Show state selection first, then disclaimer on first launch
+                if !hasCompletedOnboarding {
+                    if !stateManager.hasSelectedState {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showingStatePrompt = true
+                        }
+                    } else {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showingDisclaimer = true
+                        }
+                    }
+                }
+            }
+            .onChange(of: showingStatePrompt) { oldValue, newValue in
+                // When state prompt is dismissed, show disclaimer
+                if oldValue && !newValue && !hasCompletedOnboarding {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showingDisclaimer = true
+                    }
+                }
+            }
+            .onChange(of: showingDisclaimer) { oldValue, newValue in
+                // Mark onboarding complete when disclaimer is dismissed
+                if oldValue && !newValue && !hasCompletedOnboarding {
+                    hasCompletedOnboarding = true
+                }
+            }
         }
     }
 }
@@ -298,6 +433,79 @@ struct StatItemView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
+    }
+}
+
+// Compact Score History Row for home screen
+struct CompactScoreHistoryRow: View {
+    let record: ScoreRecord
+    let usBlue: Color
+    let usRed: Color
+    @State private var showingDetail = false
+    
+    var body: some View {
+        Button(action: {
+            showingDetail = true
+        }) {
+            HStack(spacing: 12) {
+                // Pass/Fail indicator
+                ZStack {
+                    Circle()
+                        .fill(record.passed ? Color.green.opacity(0.15) : Color.red.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: record.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(record.passed ? .green : .red)
+                }
+                
+                // Date and score info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(formatDate(record.date))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text("\(record.score)/\(record.totalQuestions) correct")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // Percentage
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(record.percentage)%")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(record.passed ? .green : .red)
+                    
+                    Text(record.passed ? "PASSED" : "FAILED")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(record.passed ? .green : .red)
+                }
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(16)
+            .background(.thickMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder((record.passed ? Color.green : Color.red).opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingDetail) {
+            ScoreDetailView(record: record, usBlue: usBlue, usRed: usRed)
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 

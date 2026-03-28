@@ -15,19 +15,52 @@ struct Question: Identifiable, Codable {
     let answers: [String]
     let correctAnswers: [String] // Some questions have multiple acceptable answers
     let category: QuestionCategory
+    let isStateSpecific: Bool // Indicates if this question requires state-specific info
     
-    init(id: UUID = UUID(), number: Int, question: String, answers: [String], correctAnswers: [String], category: QuestionCategory) {
+    init(id: UUID = UUID(), number: Int, question: String, answers: [String], correctAnswers: [String], category: QuestionCategory, isStateSpecific: Bool = false) {
         self.id = id
         self.number = number
         self.question = question
         self.answers = answers
         self.correctAnswers = correctAnswers
         self.category = category
+        self.isStateSpecific = isStateSpecific
     }
     
     // Check if a given answer is correct
     func isCorrect(answer: String) -> Bool {
         return correctAnswers.contains(answer)
+    }
+    
+    // Check if a given answer is correct (state-aware version)
+    func isCorrect(answer: String, stateManager: StateManager) -> Bool {
+        let correctAnswersList = getCorrectAnswers(stateManager: stateManager)
+        return correctAnswersList.contains(answer)
+    }
+    
+    // Get state-specific answers if available
+    func getAnswers(stateManager: StateManager) -> [String] {
+        if isStateSpecific, let stateAnswers = stateManager.getStateSpecificAnswer(for: number) {
+            return stateAnswers
+        }
+        return answers
+    }
+    
+    // Get answers for test mode (always returns exactly 4 options for multiple choice)
+    func getTestAnswers(stateManager: StateManager) -> [String] {
+        if isStateSpecific, let stateAnswers = stateManager.getStateSpecificAnswer(for: number) {
+            // For state-specific questions, create 4 answer options with the correct answer(s) plus distractors
+            return stateManager.getMultipleChoiceOptions(for: number, correctAnswers: stateAnswers)
+        }
+        return answers
+    }
+    
+    // Get correct answers with state-specific data if applicable
+    func getCorrectAnswers(stateManager: StateManager) -> [String] {
+        if isStateSpecific, let stateAnswers = stateManager.getStateSpecificAnswer(for: number) {
+            return stateAnswers
+        }
+        return correctAnswers
     }
 }
 

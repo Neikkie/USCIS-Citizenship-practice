@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct FlashcardView: View {
     @ObservedObject var questionService: QuestionService
+    @ObservedObject var stateManager: StateManager
     @State private var currentIndex = 0
     @State private var isShowingAnswer = false
     @State private var offset = CGSize.zero
@@ -29,20 +31,16 @@ struct FlashcardView: View {
     
     var body: some View {
         ZStack {
-            // American flag-inspired background
-            LinearGradient(
-                gradient: Gradient(colors: [usBlue, usRed.opacity(0.3), .white]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Solid background for better readability
+            usBlue.opacity(0.15)
+                .ignoresSafeArea()
             
             VStack(spacing: 20) {
                 // Progress indicator
                 HStack {
                     Text("Card \(currentIndex + 1) of \(questionCount)")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Spacer()
                     
@@ -56,7 +54,7 @@ struct FlashcardView: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(.white.opacity(0.2))
+                            .background(usBlue)
                             .cornerRadius(20)
                     }
                 }
@@ -65,7 +63,7 @@ struct FlashcardView: View {
                 
                 // Progress bar
                 ProgressView(value: Double(currentIndex + 1), total: Double(questionCount))
-                    .tint(.white)
+                    .tint(usBlue)
                     .padding(.horizontal)
                 
                 Spacer()
@@ -75,7 +73,8 @@ struct FlashcardView: View {
                     question: currentQuestion,
                     isShowingAnswer: $isShowingAnswer,
                     usRed: usRed,
-                    usBlue: usBlue
+                    usBlue: usBlue,
+                    stateManager: stateManager
                 )
                 .padding(.horizontal, 20)
                 
@@ -86,8 +85,8 @@ struct FlashcardView: View {
                     Button(action: previousCard) {
                         Image(systemName: "arrow.left.circle.fill")
                             .font(.system(size: 50))
-                            .foregroundStyle(.white)
-                            .shadow(color: usBlue.opacity(0.5), radius: 4)
+                            .foregroundStyle(usBlue)
+                            .shadow(color: usBlue.opacity(0.3), radius: 2)
                     }
                     .disabled(currentIndex == 0)
                     .opacity(currentIndex == 0 ? 0.3 : 1.0)
@@ -99,20 +98,23 @@ struct FlashcardView: View {
                     }) {
                         Image(systemName: isShowingAnswer ? "eye.slash.fill" : "eye.fill")
                             .font(.system(size: 50))
-                            .foregroundStyle(.white)
-                            .shadow(color: usRed.opacity(0.5), radius: 4)
+                            .foregroundStyle(usRed)
+                            .shadow(color: usRed.opacity(0.3), radius: 2)
                     }
                     
                     Button(action: nextCard) {
                         Image(systemName: "arrow.right.circle.fill")
                             .font(.system(size: 50))
-                            .foregroundStyle(.white)
-                            .shadow(color: usBlue.opacity(0.5), radius: 4)
+                            .foregroundStyle(usBlue)
+                            .shadow(color: usBlue.opacity(0.3), radius: 2)
                     }
                     .disabled(currentIndex >= questionCount - 1)
                     .opacity(currentIndex >= questionCount - 1 ? 0.3 : 1.0)
                 }
                 .padding(.bottom, 40)
+                
+                BannerViewContainer(bannerAdType: .flashCardAd)
+                .frame(height: 50)
             }
         }
         .navigationTitle("Flashcards")
@@ -152,6 +154,7 @@ struct FlashcardContentView: View {
     @Binding var isShowingAnswer: Bool
     let usRed: Color
     let usBlue: Color
+    @ObservedObject var stateManager: StateManager
     
     var body: some View {
         ZStack {
@@ -176,7 +179,7 @@ struct FlashcardContentView: View {
                         .font(.caption)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(.white.opacity(0.3))
+                        .background(.black.opacity(0.3))
                         .foregroundColor(.white)
                         .cornerRadius(20)
                     
@@ -187,7 +190,7 @@ struct FlashcardContentView: View {
                         .fontWeight(.bold)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(.white.opacity(0.3))
+                        .background(.black.opacity(0.3))
                         .foregroundColor(.white)
                         .cornerRadius(20)
                 }
@@ -232,7 +235,7 @@ struct FlashcardContentView: View {
                                 .tracking(2)
                             
                             VStack(alignment: .center, spacing: 12) {
-                                ForEach(question.correctAnswers, id: \.self) { answer in
+                                ForEach(question.getCorrectAnswers(stateManager: stateManager), id: \.self) { answer in
                                     HStack {
                                         Image(systemName: "star.fill")
                                             .foregroundColor(.white)
@@ -255,6 +258,10 @@ struct FlashcardContentView: View {
                                     .padding(.top, 4)
                             }
                         }
+                        .rotation3DEffect(
+                            .degrees(180),
+                            axis: (x: 0, y: 1, z: 0)
+                        )
                     }
                 }
                 
@@ -270,7 +277,7 @@ struct FlashcardContentView: View {
                 .foregroundColor(.white.opacity(0.7))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(.white.opacity(0.2))
+                .background(.black.opacity(0.3))
                 .cornerRadius(20)
             }
             .padding(30)
@@ -291,6 +298,6 @@ struct FlashcardContentView: View {
 
 #Preview {
     NavigationStack {
-        FlashcardView(questionService: QuestionService())
+        FlashcardView(questionService: QuestionService(), stateManager: StateManager())
     }
 }
